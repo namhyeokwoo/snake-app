@@ -1,0 +1,14 @@
+{
+  "appId": "com.ska90.snakearcade",
+  "appName": "스네이크 아케이드",
+  "webDir": "www",
+  "android": {
+    "allowMixedContent": false,
+    "backgroundColor": "#26241F"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 0
+    }
+  }
+}

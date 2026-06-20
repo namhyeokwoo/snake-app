@@ -1,0 +1,1139 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<title>스네이크 아케이드</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Space+Grotesk:wght@400;500;700&display=swap');
+
+:root{
+  --paper:#EFE9DA;
+  --bezel:#26241F;
+  --bezel-edge:#3A372F;
+  --screen:#A9C088;
+  --ink:#2E3B22;
+  --amber:#E2A33B;
+  --amber-deep:#C8862A;
+  --rust:#B5502E;
+  --cream:#F3EFE3;
+}
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  min-height:100dvh;
+  background:var(--paper);
+  display:flex;
+  align-items:flex-start;
+  justify-content:center;
+  font-family:'Space Grotesk', system-ui, sans-serif;
+  padding-top:    max(12px, env(safe-area-inset-top));
+  padding-right:  max(8px,  env(safe-area-inset-right));
+  padding-bottom: calc(60px + max(12px, env(safe-area-inset-bottom)));
+  padding-left:   max(8px,  env(safe-area-inset-left));
+  color:var(--ink);
+}
+
+.device{
+  width:min(500px, 96vw);
+  display:flex;
+  flex-direction:column;
+  height:calc(100dvh
+    - 60px
+    - max(12px, env(safe-area-inset-top))
+    - max(12px, env(safe-area-inset-bottom)));
+  background:linear-gradient(160deg, var(--bezel-edge), var(--bezel) 35%);
+  border-radius:28px;
+  padding:12px 14px 0;
+  box-shadow:
+    0 18px 40px -12px rgba(0,0,0,0.35),
+    inset 0 1px 0 rgba(255,255,255,0.06);
+  position:relative;
+}
+
+.device-top{
+  display:flex;
+  justify-content:center;
+  gap:6px;
+  margin-bottom:12px;
+}
+.speaker-dot{
+  width:5px;height:5px;border-radius:50%;
+  background:rgba(243,239,227,0.25);
+}
+
+.screen-frame{
+  flex:1;
+  min-height:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:var(--bezel);
+  border-radius:14px;
+  padding:10px;
+  box-shadow: inset 0 2px 6px rgba(0,0,0,0.5);
+}
+
+.screen{
+  position:relative;
+  width:100%;
+  height:100%;
+  background:var(--screen);
+  border-radius:6px;
+  overflow:hidden;
+  touch-action:none;
+  box-shadow: inset 0 0 0 2px rgba(46,59,34,0.15);
+}
+
+#board{
+  width:100%;
+  height:100%;
+  display:block;
+  image-rendering:pixelated;
+}
+
+.overlay{
+  position:absolute; inset:0;
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  gap:14px;
+  background:rgba(169,192,136,0.96);
+  text-align:center;
+  padding:20px;
+}
+.hidden{display:none !important;}
+
+.pixel-title{
+  font-family:'Press Start 2P', 'Courier New', monospace;
+  font-size:22px;
+  color:var(--ink);
+  letter-spacing:1px;
+}
+.overlay p{
+  font-size:13px;
+  line-height:1.6;
+  margin:0;
+  max-width:220px;
+  color:var(--ink);
+  opacity:0.85;
+}
+
+.btn{
+  font-family:'Space Grotesk', system-ui, sans-serif;
+  font-weight:700;
+  border:none;
+  cursor:pointer;
+  border-radius:10px;
+  padding:12px 22px;
+  font-size:14px;
+  background:var(--amber);
+  color:var(--ink);
+  box-shadow:0 4px 0 var(--amber-deep);
+  transition:transform .08s ease;
+  touch-action:manipulation;
+}
+.btn:active{ transform:translateY(3px); box-shadow:0 1px 0 var(--amber-deep); }
+.btn:focus-visible{ outline:3px solid var(--cream); outline-offset:2px; }
+
+.btn-outline{
+  font-family:'Space Grotesk', system-ui, sans-serif;
+  font-weight:700;
+  border:2px solid rgba(243,239,227,0.3);
+  cursor:pointer;
+  border-radius:10px;
+  padding:10px 22px;
+  font-size:13px;
+  background:transparent;
+  color:var(--cream);
+  transition:transform .08s ease;
+  touch-action:manipulation;
+}
+.btn-outline:active{ transform:translateY(2px); }
+.btn-outline:focus-visible{ outline:2px solid var(--amber); outline-offset:2px; }
+
+.btn-ghost{
+  background:transparent;
+  color:var(--cream);
+  box-shadow:none;
+  font-size:12px;
+  text-decoration:underline;
+  padding:6px 10px;
+  cursor:pointer;
+  border:none;
+  font-family:'Space Grotesk', system-ui, sans-serif;
+  touch-action:manipulation;
+}
+.btn-ghost:active{ transform:none; }
+.btn-ghost:focus-visible{ outline:2px solid var(--amber); }
+
+.score-row{
+  display:flex; justify-content:space-between; align-items:center;
+  margin-top:12px; padding:0 4px;
+  font-family:'Press Start 2P','Courier New',monospace;
+  color:var(--cream);
+}
+.score-block.best{ text-align:right; }
+.score-label{ font-size:8px; opacity:0.55; letter-spacing:1px; }
+.score-value{ font-size:16px; margin-top:2px; }
+
+.lives-row{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:3px;
+  margin:7px 0 3px;
+}
+.hearts{ display:flex; gap:6px; }
+.heart{
+  font-size:15px;
+  line-height:1;
+  color:var(--rust);
+  transition:opacity .2s;
+}
+.heart.empty{ color:rgba(243,239,227,0.15); }
+.life-timer{
+  font-family:'Press Start 2P','Courier New',monospace;
+  font-size:7px;
+  color:rgba(243,239,227,0.4);
+  letter-spacing:0.3px;
+  min-height:11px;
+}
+
+.combo-display{
+  position:absolute;
+  top:8px; right:8px;
+  font-family:'Press Start 2P','Courier New',monospace;
+  font-size:9px;
+  color:var(--amber);
+  text-shadow:0 1px 2px rgba(0,0,0,0.5);
+  pointer-events:none;
+  opacity:0;
+  transition:opacity .2s;
+  text-align:right;
+  line-height:1.6;
+}
+.combo-display.active{ opacity:1; }
+@keyframes comboBump{
+  0%{ transform:scale(1.6); }
+  100%{ transform:scale(1); }
+}
+.combo-display.bump{ animation:comboBump .18s ease-out; }
+
+.item-toast{
+  position:absolute;
+  left:50%; transform:translateX(-50%);
+  bottom:18%;
+  font-family:'Press Start 2P','Courier New',monospace;
+  font-size:8px;
+  color:#fff;
+  text-shadow:0 1px 3px rgba(0,0,0,0.7);
+  pointer-events:none;
+  white-space:nowrap;
+  opacity:0;
+}
+@keyframes itemToastAnim{
+  0%  { opacity:0; transform:translateX(-50%) translateY(0); }
+  15% { opacity:1; transform:translateX(-50%) translateY(-6px); }
+  70% { opacity:1; transform:translateX(-50%) translateY(-10px); }
+  100%{ opacity:0; transform:translateX(-50%) translateY(-16px); }
+}
+.item-toast.show{ animation:itemToastAnim 1.6s ease-out forwards; }
+
+.pause-btn{
+  background:none;
+  border:none;
+  color:var(--cream);
+  font-size:18px;
+  cursor:pointer;
+  padding:4px 8px;
+  opacity:0.55;
+  align-self:center;
+  line-height:1;
+}
+.pause-btn:active{ opacity:1; }
+
+.ad-banner{
+  margin:0 -16px;
+  padding:9px 16px;
+  background:var(--bezel-edge);
+  border-top:1px solid rgba(0,0,0,0.3);
+  border-radius:0 0 28px 28px;
+  display:flex; align-items:center; gap:8px;
+}
+.ad-tag{
+  font-size:9px; font-weight:700; letter-spacing:1px;
+  color:var(--bezel);
+  background:var(--cream);
+  padding:2px 5px; border-radius:3px;
+}
+.ad-banner-text{
+  font-size:10px;
+  color:rgba(243,239,227,0.5);
+  letter-spacing:0.2px;
+}
+
+.modal{
+  position:absolute; inset:0;
+  background:rgba(38,36,31,0.92);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:8px; padding:24px; text-align:center;
+}
+.modal .pixel-title{ color:var(--cream); font-size:18px; }
+.score-final{ color:var(--amber); font-family:'Press Start 2P','Courier New',monospace; font-size:24px; margin:4px 0; }
+.best-final{ color:rgba(243,239,227,0.6); font-size:11px; }
+
+.modal-lives{ display:flex; gap:6px; margin:4px 0 2px; }
+.modal-lives .heart{ font-size:15px; color:var(--rust); }
+.modal-lives .heart.empty{ color:rgba(243,239,227,0.15); }
+
+.ad-progress-track{
+  width:160px; height:6px; background:rgba(243,239,227,0.15);
+  border-radius:3px; overflow:hidden; margin-top:10px;
+}
+.ad-progress-fill{ height:100%; width:0%; background:var(--amber); }
+.ad-overlay-text{ color:var(--cream); font-size:13px; }
+.ad-overlay-sub{ color:rgba(243,239,227,0.5); font-size:10px; margin-top:4px;}
+
+
+.page-banner{
+  position:fixed;
+  left:0; right:0;
+  bottom:env(safe-area-inset-bottom, 0px);
+  height:60px;
+  background:var(--bezel);
+  border-top:1px solid rgba(0,0,0,0.25);
+  display:flex; align-items:center; justify-content:center;
+  gap:8px;
+  z-index:100;
+}
+.page-banner-text{
+  font-size:10px;
+  color:rgba(243,239,227,0.35);
+  letter-spacing:0.2px;
+}
+
+/* 가로 모드: 게임화면 왼쪽 + 컨트롤 오른쪽 */
+@media (orientation: landscape){
+  body{
+    padding-top:    max(8px, env(safe-area-inset-top));
+    padding-right:  max(8px, env(safe-area-inset-right));
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
+    padding-left:   max(8px, env(safe-area-inset-left));
+    align-items:flex-start;
+  }
+  .page-banner{ display:none; }
+  .device{
+    display:flex;
+    flex-direction:row;
+    align-items:stretch;
+    gap:10px;
+    width:100%;
+    max-width:860px;
+    height:auto;        /* 가로 모드는 높이 자동 */
+    border-radius:16px;
+    padding:10px;
+  }
+  .device-top{ display:none; }
+  .screen-frame{
+    flex:0 0 auto;
+    min-height:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    width:min(48vh, 52vw);
+    align-self:center;
+  }
+  .device-right{ flex:1; display:flex; flex-direction:column; justify-content:center; }
+  .score-row{ margin-top:4px; }
+  .ad-banner{ display:none; }
+}
+
+/* 소형 세로 화면 (Galaxy A 보급형 등) */
+@media (max-height: 650px) and (orientation: portrait){
+  body{ padding:4px 8px; }
+  .device{ padding:6px 10px 0; }
+  .device-top{ display:none; }
+  .score-row{ margin-top:4px; }
+  .lives-row{ margin:2px 0 0; }
+  .ad-banner{ padding:4px 10px; }
+}
+
+@media (prefers-reduced-motion: reduce){
+  .btn, .btn-outline, .dpad button{ transition:none; }
+  .heart{ transition:none; }
+}
+</style>
+</head>
+<body>
+
+<div class="device">
+  <div class="device-top">
+    <span class="speaker-dot"></span><span class="speaker-dot"></span><span class="speaker-dot"></span>
+    <span class="speaker-dot"></span><span class="speaker-dot"></span>
+  </div>
+
+  <div class="screen-frame">
+    <div class="screen" id="screen">
+      <canvas id="board"></canvas>
+      <div class="combo-display" id="comboDisplay"></div>
+      <div class="item-toast" id="itemToast"></div>
+
+      <div class="overlay" id="startOverlay">
+        <div class="pixel-title">SNAKE</div>
+        <p data-i18n="startDesc">스와이프하거나 아래 버튼으로 방향을 바꾸세요. 먹이를 먹을 때마다 길어지고, 속도도 빨라져요.</p>
+        <button class="btn" id="btnStart" data-i18n="btnStart">시작하기</button>
+      </div>
+
+      <div class="modal hidden" id="gameOverModal">
+        <div class="pixel-title">GAME OVER</div>
+        <div class="score-final" id="finalScore">0000</div>
+        <div class="best-final" id="finalBest">BEST 0000</div>
+        <div class="modal-lives" id="modalLives"></div>
+        <button class="btn hidden" id="btnFreeRevive" data-i18n="btnRevive">계속하기</button>
+        <button class="btn-outline hidden" id="btnRestart" data-i18n="btnRestart">다시 시작</button>
+        <button class="btn-ghost hidden" id="btnContinueAd" data-i18n="btnContinueAd">📺 광고 보고 한 번 더 (1회)</button>
+        <button class="btn-ghost hidden" id="btnRefillLivesAd" data-i18n="btnRefillLivesAd">📺 광고 보고 라이프 충전</button>
+      </div>
+
+      <div class="modal hidden" id="adOverlay">
+        <div class="ad-overlay-text" id="adText"></div>
+        <div class="ad-progress-track"><div class="ad-progress-fill" id="adFill"></div></div>
+        <div class="ad-overlay-sub" data-i18n="adSub">보상형 광고 시뮬레이션 (프로토타입)</div>
+      </div>
+
+      <div class="modal hidden" id="pauseOverlay">
+        <div class="pixel-title" style="color:var(--cream)">PAUSED</div>
+        <button class="btn" id="btnResume" data-i18n="btnResume">계속하기</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="device-right">
+    <div class="score-row">
+      <div class="score-block">
+        <div class="score-label">SCORE</div>
+        <div class="score-value" id="scoreValue">0000</div>
+      </div>
+      <div class="score-block best">
+        <div class="score-label">BEST</div>
+        <div class="score-value" id="bestValue">0000</div>
+      </div>
+      <button id="btnPause" class="pause-btn" data-i18n-aria="ariaPause" aria-label="일시정지">⏸</button>
+    </div>
+
+    <div class="lives-row">
+      <div class="hearts" id="heartsRow"></div>
+      <div class="life-timer" id="lifeTimer"></div>
+    </div>
+
+    <div class="ad-banner">
+      <span class="ad-tag">AD</span>
+      <span class="ad-banner-text" data-i18n="bannerText">배너 광고 영역 — Capacitor + AdMob 연동 후 실제 광고 표시</span>
+    </div>
+  </div>
+</div>
+
+<div class="page-banner" id="pageBanner">
+  <span class="ad-tag">AD</span>
+  <span class="page-banner-text" data-i18n="pageBannerText">320×50 배너 광고 영역 — AdMob 연동 후 실제 광고 표시</span>
+</div>
+
+<script>
+(function(){
+  // ── i18n ─────────────────────────────────────────────────
+  const STRINGS = {
+    ko: {
+      startDesc:      '스와이프하거나 아래 버튼으로 방향을 바꾸세요. 먹이를 먹을 때마다 길어지고, 속도도 빨라져요.',
+      btnStart:       '시작하기',
+      btnRevive:      '계속하기',
+      btnRestart:     '다시 시작',
+      btnContinueAd:    '📺 광고 보고 한 번 더 (1회)',
+      btnRefillLivesAd: '📺 광고 보고 라이프 충전 (♥×5)',
+      adSub:          '',
+      btnResume:      '계속하기',
+      bannerText:     '배너 광고 영역 — Capacitor + AdMob 연동 후 실제 광고 표시',
+      pageBannerText: '320×50 배너 광고 영역 — AdMob 연동 후 실제 광고 표시',
+      ariaUp:    '위로', ariaLeft: '왼쪽으로', ariaPause: '일시정지',
+      ariaRight: '오른쪽으로', ariaDown: '아래로',
+      reviveWithLives: (n) => `계속하기  ♥ × ${n}`,
+      adCountdown:     (n) => `광고 재생 중… ${n}`,
+    },
+    en: {
+      startDesc:      'Swipe or use the buttons to change direction. Eat food to grow and speed up!',
+      btnStart:       'START',
+      btnRevive:      'CONTINUE',
+      btnRestart:     'RESTART',
+      btnContinueAd:    '📺 Watch Ad to Continue (×1)',
+      btnRefillLivesAd: '📺 Watch Ad — Refill Lives (♥×5)',
+      adSub:          '',
+      btnResume:      'RESUME',
+      bannerText:     'Banner Ad — Real ad displayed after AdMob integration',
+      pageBannerText: '320×50 Banner Ad — Real ad displayed after AdMob integration',
+      ariaUp:    'Up', ariaLeft: 'Left', ariaPause: 'Pause',
+      ariaRight: 'Right', ariaDown: 'Down',
+      reviveWithLives: (n) => `CONTINUE  ♥ × ${n}`,
+      adCountdown:     (n) => `Playing ad… ${n}`,
+    },
+  };
+  const S = STRINGS[navigator.language.startsWith('ko') ? 'ko' : 'en'];
+
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    el.textContent = S[el.dataset.i18n] || el.textContent;
+  });
+  document.querySelectorAll('[data-i18n-aria]').forEach(el => {
+    el.setAttribute('aria-label', S[el.dataset.i18nAria] || el.getAttribute('aria-label'));
+  });
+
+  // AdMob 광고 ID (테스트용 — 출시 전 실제 ID로 교체)
+  const ADMOB_BANNER_ID   = 'ca-app-pub-3940256099942544/6300978111';
+  const ADMOB_REWARDED_ID = 'ca-app-pub-3940256099942544/5224354917';
+
+  const COLS = 17;
+  const ROWS_P = 26, ROWS_L = 17;
+  let ROWS = ROWS_P;
+  const BASE_INTERVAL = 150, MIN_INTERVAL = 70;
+  const MAX_LIVES = 5;
+  const LIFE_REGEN_MS = 3 * 60 * 1000; // 3분
+  const COMBO_WINDOW_MS = 3000;         // 콤보 유효 시간
+
+  const canvas = document.getElementById('board');
+  const ctx = canvas.getContext('2d');
+  const screenEl = document.getElementById('screen');
+
+  const startOverlay  = document.getElementById('startOverlay');
+  const gameOverModal = document.getElementById('gameOverModal');
+  const adOverlay     = document.getElementById('adOverlay');
+  const adFill        = document.getElementById('adFill');
+  const adText        = document.getElementById('adText');
+
+  const btnStart          = document.getElementById('btnStart');
+  const btnRestart        = document.getElementById('btnRestart');
+  const btnFreeRevive     = document.getElementById('btnFreeRevive');
+  const btnContinueAd     = document.getElementById('btnContinueAd');
+  const btnRefillLivesAd  = document.getElementById('btnRefillLivesAd');
+  const pauseOverlay  = document.getElementById('pauseOverlay');
+  const btnResume     = document.getElementById('btnResume');
+  const btnPause      = document.getElementById('btnPause');
+
+  const scoreValueEl = document.getElementById('scoreValue');
+  const bestValueEl  = document.getElementById('bestValue');
+  const finalScoreEl = document.getElementById('finalScore');
+  const finalBestEl  = document.getElementById('finalBest');
+  const heartsRow    = document.getElementById('heartsRow');
+  const lifeTimerEl  = document.getElementById('lifeTimer');
+  const modalLives    = document.getElementById('modalLives');
+  const comboDisplay  = document.getElementById('comboDisplay');
+  const itemToastEl   = document.getElementById('itemToast');
+
+  const DIRS = {
+    up:{x:0,y:-1}, down:{x:0,y:1}, left:{x:-1,y:0}, right:{x:1,y:0}
+  };
+
+  let cssW = 0, cssH = 0, cellW = 0, cellH = 0;
+  let snake, food, direction, nextDirection;
+  let score = 0, best = 0, currentInterval = BASE_INTERVAL;
+  let foodEaten = 0; // 속도 계산용 — 점수 배율과 분리
+  let state = 'start'; // start | playing | paused | gameover
+  let continueUsed = false;
+  let timer = null;
+  let item = null, itemEffect = null, nextItemScore = 10;
+  let itemTimer = null, effectTimer = null;
+  let comboCount = 0, comboTimerId = null;
+  let audioCtx = null;
+
+  // Lives state
+  let lives = MAX_LIVES;
+  let nextAt = null; // timestamp of next life regeneration
+
+  function pad4(n){ return String(n).padStart(4,'0'); }
+
+  // localStorage helpers with graceful fallback
+  function lsGet(key){ try{ return localStorage.getItem(key); }catch(e){ return null; } }
+  function lsSet(key, val){ try{ localStorage.setItem(key, val); }catch(e){} }
+
+  // ── Combo ────────────────────────────────────────────────
+  function getMultiplier(){
+    if(comboCount >= 5) return 3;
+    if(comboCount >= 2) return 2;
+    return 1;
+  }
+
+  function resetCombo(){
+    clearTimeout(comboTimerId);
+    comboTimerId = null;
+    comboCount = 0;
+    updateComboUI();
+  }
+
+  function updateComboUI(){
+    if(comboCount < 2){ comboDisplay.classList.remove('active','bump'); return; }
+    const mult = getMultiplier();
+    comboDisplay.textContent = `×${mult}  ${comboCount}COMBO`;
+    comboDisplay.classList.add('active');
+    comboDisplay.classList.remove('bump');
+    void comboDisplay.offsetWidth; // reflow — animation 재트리거
+    comboDisplay.classList.add('bump');
+  }
+
+  // ── Best score ──────────────────────────────────────────
+  async function loadBest(){
+    try{
+      if(window.storage){
+        const res = await window.storage.get('snake-arcade-best');
+        best = res ? (parseInt(res.value,10)||0) : 0;
+      } else {
+        best = parseInt(lsGet('snake-arcade-best'),10)||0;
+      }
+    }catch(e){ best=0; }
+    updateScoreUI();
+  }
+
+  async function saveBestIfNeeded(){
+    if(score <= best) return;
+    best = score;
+    try{
+      if(window.storage) await window.storage.set('snake-arcade-best', String(best));
+      else lsSet('snake-arcade-best', String(best));
+    }catch(e){}
+    updateScoreUI();
+  }
+
+  // ── Lives ────────────────────────────────────────────────
+  function loadLives(){
+    const raw = lsGet('snake-arcade-lives');
+    if(!raw){ lives=MAX_LIVES; nextAt=null; return; }
+    try{
+      let { count, next } = JSON.parse(raw);
+      // 오프라인으로 경과된 시간만큼 수명 회복
+      const now = Date.now();
+      while(count < MAX_LIVES && next && now >= next){
+        count++;
+        next += LIFE_REGEN_MS;
+      }
+      lives = Math.min(MAX_LIVES, count);
+      nextAt = lives < MAX_LIVES ? next : null;
+    }catch(e){ lives=MAX_LIVES; nextAt=null; }
+  }
+
+  function saveLives(){
+    lsSet('snake-arcade-lives', JSON.stringify({ count:lives, next:nextAt }));
+  }
+
+  function consumeLife(){
+    lives = Math.max(0, lives - 1);
+    if(lives < MAX_LIVES && !nextAt) nextAt = Date.now() + LIFE_REGEN_MS;
+    saveLives();
+    renderLivesUI();
+  }
+
+  // 매초 호출 — 수명 회복 여부 체크 + 카운트다운 갱신
+  function tickLives(){
+    if(lives >= MAX_LIVES || !nextAt){ renderLivesUI(); return; }
+    const now = Date.now();
+    if(now >= nextAt){
+      lives++;
+      nextAt = lives < MAX_LIVES ? nextAt + LIFE_REGEN_MS : null;
+      saveLives();
+    }
+    renderLivesUI();
+  }
+
+  function renderLivesUI(){
+    // 하단 하트 행
+    heartsRow.innerHTML = '';
+    for(let i=0; i<MAX_LIVES; i++){
+      const s = document.createElement('span');
+      s.className = 'heart' + (i < lives ? '' : ' empty');
+      s.textContent = '♥';
+      heartsRow.appendChild(s);
+    }
+
+    // 게임오버 모달 하트
+    modalLives.innerHTML = '';
+    for(let i=0; i<MAX_LIVES; i++){
+      const s = document.createElement('span');
+      s.className = 'heart' + (i < lives ? '' : ' empty');
+      s.textContent = '♥';
+      modalLives.appendChild(s);
+    }
+
+    // 충전 카운트다운
+    if(lives >= MAX_LIVES || !nextAt){
+      lifeTimerEl.textContent = '';
+    } else {
+      const rem = Math.max(0, nextAt - Date.now());
+      const m = Math.floor(rem / 60000);
+      const s = Math.floor((rem % 60000) / 1000);
+      lifeTimerEl.textContent = `+♥ ${m}:${String(s).padStart(2,'0')}`;
+    }
+
+    // 모달 버튼 표시 제어
+    if(state === 'gameover'){
+      const hasLives = lives > 0;
+      btnFreeRevive.classList.toggle('hidden', !hasLives);
+      if(hasLives) btnFreeRevive.textContent = S.reviveWithLives(lives);
+      btnContinueAd.classList.add('hidden');
+      btnRestart.classList.toggle('hidden', !hasLives);
+      btnRefillLivesAd.classList.toggle('hidden', hasLives);
+    }
+  }
+
+  // ── Sound ────────────────────────────────────────────────
+  function playSound(type){
+    try{
+      if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if(audioCtx.state === 'suspended') audioCtx.resume();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      const t = audioCtx.currentTime;
+      if(type === 'eat'){
+        osc.frequency.setValueAtTime(500, t);
+        osc.frequency.linearRampToValueAtTime(820, t + 0.07);
+        gain.gain.setValueAtTime(0.12, t);
+        gain.gain.linearRampToValueAtTime(0, t + 0.1);
+        osc.start(t); osc.stop(t + 0.1);
+      } else if(type === 'combo'){
+        const top = getMultiplier() >= 3 ? 1300 : 1050;
+        osc.frequency.setValueAtTime(550, t);
+        osc.frequency.linearRampToValueAtTime(top, t + 0.14);
+        gain.gain.setValueAtTime(0.18, t);
+        gain.gain.linearRampToValueAtTime(0, t + 0.18);
+        osc.start(t); osc.stop(t + 0.18);
+      } else if(type === 'die'){
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(280, t);
+        osc.frequency.linearRampToValueAtTime(80, t + 0.28);
+        gain.gain.setValueAtTime(0.2, t);
+        gain.gain.linearRampToValueAtTime(0, t + 0.3);
+        osc.start(t); osc.stop(t + 0.3);
+      }
+    }catch(e){}
+  }
+
+  function vibrate(pattern){ try{ navigator.vibrate?.(pattern); }catch(e){} }
+
+
+
+  function togglePause(){
+    if(state === 'playing'){
+      state = 'paused';
+      clearTimeout(timer);
+      pauseOverlay.classList.remove('hidden');
+    } else if(state === 'paused'){
+      state = 'playing';
+      pauseOverlay.classList.add('hidden');
+      scheduleNext();
+    }
+  }
+
+  // ── Canvas ───────────────────────────────────────────────
+  function resizeCanvas(){
+    const isLandscape = window.innerWidth > window.innerHeight;
+    const newRows = isLandscape ? ROWS_L : ROWS_P;
+    if(newRows !== ROWS && (state === 'idle' || state === 'gameover')){
+      ROWS = newRows;
+      resetSnake();
+      food = spawnFood();
+    } else {
+      ROWS = newRows;
+    }
+    const rect = screenEl.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    cssW = rect.width;
+    cssH = rect.height;
+    cellW = cssW / COLS;
+    cellH = cssH / ROWS;
+    canvas.width  = Math.round(cssW * dpr);
+    canvas.height = Math.round(cssH * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    render();
+  }
+
+  // ── Game logic ───────────────────────────────────────────
+  function randomCell(){
+    return { x: Math.floor(Math.random()*COLS), y: Math.floor(Math.random()*ROWS) };
+  }
+
+  function spawnFood(){
+    let c;
+    do { c = randomCell(); }
+    while(snake.some(s=>s.x===c.x && s.y===c.y));
+    return c;
+  }
+
+  function recalcInterval(){
+    const base = Math.max(MIN_INTERVAL, BASE_INTERVAL - Math.floor(foodEaten/8)*6);
+    const bonus = (itemEffect && itemEffect.type === 'slow') ? 50 : 0;
+    currentInterval = Math.min(BASE_INTERVAL, base + bonus);
+  }
+
+  function spawnItem(){
+    const types = ['slow','x2','life','short'];
+    const type = types[Math.floor(Math.random()*types.length)];
+    let c;
+    do { c = randomCell(); }
+    while(snake.some(s=>s.x===c.x && s.y===c.y) || (food && c.x===food.x && c.y===food.y));
+    item = {x:c.x, y:c.y, type};
+    clearTimeout(itemTimer);
+    itemTimer = setTimeout(()=>{ item = null; }, 8000);
+  }
+
+  const ITEM_TOAST_TEXT = {
+    slow:  { ko:'속도 DOWN  -5s', en:'SLOW  5s' },
+    x2:    { ko:'점수 ×2  5s',   en:'SCORE ×2  5s' },
+    life:  { ko:'라이프 +1',      en:'LIFE +1' },
+    short: { ko:'꼬리 단축',      en:'TAIL -2' },
+  };
+  const ITEM_TOAST_COLOR = {slow:'#2196F3', x2:'#FFC107', life:'#E91E63', short:'#9C27B0'};
+  let itemToastTimer = null;
+
+  function showItemToast(type){
+    const lang = navigator.language.startsWith('ko') ? 'ko' : 'en';
+    itemToastEl.textContent = ITEM_TOAST_TEXT[type][lang];
+    itemToastEl.style.color = ITEM_TOAST_COLOR[type];
+    itemToastEl.classList.remove('show');
+    void itemToastEl.offsetWidth;
+    itemToastEl.classList.add('show');
+    clearTimeout(itemToastTimer);
+    itemToastTimer = setTimeout(()=>{ itemToastEl.classList.remove('show'); }, 1600);
+  }
+
+  function applyItem(type){
+    clearTimeout(effectTimer);
+    if(type === 'slow'){
+      itemEffect = {type, endsAt: Date.now()+5000};
+      recalcInterval();
+      effectTimer = setTimeout(()=>{ itemEffect = null; recalcInterval(); }, 5000);
+    } else if(type === 'x2'){
+      itemEffect = {type, endsAt: Date.now()+5000};
+      effectTimer = setTimeout(()=>{ itemEffect = null; }, 5000);
+    } else if(type === 'life'){
+      lives = Math.min(MAX_LIVES, lives+1);
+      renderLivesUI();
+    } else if(type === 'short'){
+      snake.splice(-Math.min(2, snake.length-1));
+    }
+    showItemToast(type);
+    vibrate(20);
+  }
+
+  function resetSnake(){
+    const cy = Math.floor(ROWS/2);
+    snake = [{x:6,y:cy},{x:5,y:cy},{x:4,y:cy}];
+    direction = DIRS.right;
+    nextDirection = DIRS.right;
+    clearTimeout(itemTimer);
+    clearTimeout(effectTimer);
+    item = null;
+    itemEffect = null;
+    nextItemScore = 10;
+  }
+
+  function newGame(){
+    resetSnake();
+    food = spawnFood();
+    score = 0;
+    foodEaten = 0;
+    recalcInterval();
+    continueUsed = false;
+    resetCombo();
+    state = 'playing';
+    updateScoreUI();
+    startOverlay.classList.add('hidden');
+    gameOverModal.classList.add('hidden');
+    render();
+    scheduleNext();
+  }
+
+  function restartGame(){
+    newGame();
+  }
+
+  function scheduleNext(){
+    clearTimeout(timer);
+    timer = setTimeout(tick, currentInterval);
+  }
+
+  function setDirection(d){
+    if(state !== 'playing') return;
+    if(d.x === -direction.x && d.y === -direction.y && snake.length > 1) return;
+    nextDirection = d;
+  }
+
+  function tick(){
+    direction = nextDirection;
+    const head = snake[0];
+    const newHead = { x: head.x + direction.x, y: head.y + direction.y };
+
+    const hitWall = newHead.x<0 || newHead.x>=COLS || newHead.y<0 || newHead.y>=ROWS;
+    const hitSelf = snake.some(s => s.x===newHead.x && s.y===newHead.y);
+
+    if(hitWall || hitSelf){ onCollision(); return; }
+
+    snake.unshift(newHead);
+
+    let ateItemType = null;
+    if(item && newHead.x===item.x && newHead.y===item.y){
+      ateItemType = item.type;
+      clearTimeout(itemTimer);
+      item = null;
+    }
+
+    if(newHead.x===food.x && newHead.y===food.y){
+      comboCount++;
+      foodEaten++;
+      clearTimeout(comboTimerId);
+      comboTimerId = setTimeout(resetCombo, COMBO_WINDOW_MS);
+      score += getMultiplier() * (itemEffect && itemEffect.type === 'x2' ? 2 : 1);
+      updateScoreUI();
+      updateComboUI();
+      playSound(comboCount >= 2 ? 'combo' : 'eat');
+      vibrate(10);
+      food = spawnFood();
+      recalcInterval();
+      if(!item && score >= nextItemScore){
+        nextItemScore = score + 10;
+        spawnItem();
+      }
+    } else {
+      snake.pop();
+    }
+
+    if(ateItemType) applyItem(ateItemType);
+
+    render();
+    scheduleNext();
+  }
+
+  function onCollision(){
+    state = 'gameover';
+    clearTimeout(timer);
+    playSound('die');
+    vibrate([100, 50, 100]);
+    resetCombo();
+    saveBestIfNeeded();
+    consumeLife();
+    finalScoreEl.textContent = pad4(score);
+    finalBestEl.textContent  = 'BEST ' + pad4(best);
+    renderLivesUI();
+    gameOverModal.classList.remove('hidden');
+  }
+
+  function freeRevive(){
+    gameOverModal.classList.add('hidden');
+    doRevive();
+  }
+
+  async function playAdAndContinue(){
+    simulateAd();
+  }
+
+  async function playAdAndRefillLives(){
+    simulateAdRefill();
+  }
+
+  function simulateAdRefill(){
+    gameOverModal.classList.add('hidden');
+    adOverlay.classList.remove('hidden');
+    adFill.style.transition = 'none';
+    adFill.style.width = '0%';
+    let secondsLeft = 3;
+    adText.textContent = S.adCountdown(secondsLeft);
+    requestAnimationFrame(()=>{
+      adFill.style.transition = 'width 3s linear';
+      adFill.style.width = '100%';
+    });
+    const countdown = setInterval(()=>{
+      secondsLeft -= 1;
+      if(secondsLeft > 0) adText.textContent = S.adCountdown(secondsLeft);
+    }, 1000);
+    setTimeout(()=>{
+      clearInterval(countdown);
+      adOverlay.classList.add('hidden');
+      lives = MAX_LIVES;
+      nextAt = null;
+      saveLives();
+      renderLivesUI();
+      gameOverModal.classList.remove('hidden');
+    }, 3000);
+  }
+
+  function simulateAd(){
+    gameOverModal.classList.add('hidden');
+    adOverlay.classList.remove('hidden');
+    adFill.style.transition = 'none';
+    adFill.style.width = '0%';
+    let secondsLeft = 3;
+    adText.textContent = S.adCountdown(secondsLeft);
+    requestAnimationFrame(()=>{
+      adFill.style.transition = 'width 3s linear';
+      adFill.style.width = '100%';
+    });
+    const countdown = setInterval(()=>{
+      secondsLeft -= 1;
+      if(secondsLeft > 0) adText.textContent = S.adCountdown(secondsLeft);
+    }, 1000);
+    setTimeout(()=>{
+      clearInterval(countdown);
+      adOverlay.classList.add('hidden');
+      continueUsed = true;
+      doRevive();
+    }, 3000);
+  }
+
+  async function initAdMob(){
+    const AdMob = window.Capacitor?.Plugins?.AdMob;
+    if(!AdMob) return;
+    try {
+      await AdMob.initialize({ initializeForTesting: false });
+      await AdMob.showBanner({
+        adId: ADMOB_BANNER_ID,
+        adSize: 'BANNER',
+        position: 'BOTTOM_CENTER',
+        margin: 0,
+      });
+    } catch(e){
+      console.warn('AdMob banner init failed:', e);
+    }
+  }
+
+  function doRevive(){
+    resetSnake();
+    if(snake.some(s=>s.x===food.x && s.y===food.y)) food = spawnFood();
+    foodEaten = 0;
+    recalcInterval();
+    resetCombo();
+    state = 'playing';
+    render();
+    scheduleNext();
+  }
+
+  function updateScoreUI(){
+    scoreValueEl.textContent = pad4(score);
+    bestValueEl.textContent  = pad4(best);
+  }
+
+  // ── Rendering ────────────────────────────────────────────
+  function roundRect(x,y,w,h,r){
+    ctx.beginPath();
+    ctx.moveTo(x+r,y);
+    ctx.arcTo(x+w,y,x+w,y+h,r);
+    ctx.arcTo(x+w,y+h,x,y+h,r);
+    ctx.arcTo(x,y+h,x,y,r);
+    ctx.arcTo(x,y,x+w,y,r);
+    ctx.closePath();
+  }
+
+  function render(){
+    if(!cssW) return;
+    ctx.clearRect(0, 0, cssW, cssH);
+
+    ctx.strokeStyle = 'rgba(46,59,34,0.12)';
+    ctx.lineWidth = 1;
+    for(let i=1;i<COLS;i++){
+      const px = i*cellW;
+      ctx.beginPath(); ctx.moveTo(px,0); ctx.lineTo(px,cssH); ctx.stroke();
+    }
+    for(let j=1;j<ROWS;j++){
+      const py = j*cellH;
+      ctx.beginPath(); ctx.moveTo(0,py); ctx.lineTo(cssW,py); ctx.stroke();
+    }
+
+    const cs = Math.min(cellW, cellH);
+    const fcx = food.x*cellW + cellW/2;
+    const fcy = food.y*cellH + cellH/2;
+    ctx.fillStyle = '#B5502E';
+    ctx.beginPath(); ctx.arc(fcx, fcy, cs*0.32, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = 'rgba(243,239,227,0.55)';
+    ctx.beginPath(); ctx.arc(fcx - cs*0.1, fcy - cs*0.1, cs*0.08, 0, Math.PI*2); ctx.fill();
+
+    if(item){
+      const ITEM_COLORS = {slow:'#2196F3', x2:'#FFC107', life:'#E91E63', short:'#9C27B0'};
+      const ITEM_ICONS  = {slow:'S', x2:'★', life:'♥', short:'↑'};
+      const ix = item.x*cellW, iy = item.y*cellH;
+      ctx.fillStyle = ITEM_COLORS[item.type];
+      ctx.beginPath();
+      ctx.roundRect(ix+cellW*0.1, iy+cellH*0.1, cellW*0.8, cellH*0.8, cs*0.28);
+      ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.font = `bold ${Math.round(cs*0.44)}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(ITEM_ICONS[item.type], ix+cellW/2, iy+cellH/2);
+    }
+
+    snake.forEach((seg, i)=>{
+      const x = seg.x*cellW, y = seg.y*cellH;
+      const inset = cs*0.08, r = cs*0.18;
+      ctx.fillStyle = '#2E3B22';
+      roundRect(x+inset, y+inset, cellW-inset*2, cellH-inset*2, r);
+      ctx.fill();
+
+      if(i === 0){
+        ctx.fillStyle = '#A9C088';
+        const ex = direction.x, ey = direction.y;
+        const eyeOffsetX = (ex!==0) ? ex*cellW*0.18 : cellW*0.18;
+        const eyeOffsetY = (ey!==0) ? ey*cellH*0.18 : -cellH*0.05;
+        ctx.beginPath();
+        ctx.arc(x+cellW/2+eyeOffsetX, y+cellH/2+eyeOffsetY, cs*0.07, 0, Math.PI*2);
+        ctx.fill();
+      }
+    });
+  }
+
+  // ── Input ────────────────────────────────────────────────
+
+  window.addEventListener('keydown', (e)=>{
+    const map = { ArrowUp:'up', ArrowDown:'down', ArrowLeft:'left', ArrowRight:'right',
+                  w:'up', s:'down', a:'left', d:'right' };
+    if(map[e.key]){ e.preventDefault(); setDirection(DIRS[map[e.key]]); }
+    if(e.key === 'p' || e.key === 'P'){ e.preventDefault(); togglePause(); }
+  });
+
+  let touchStart = null;
+  screenEl.addEventListener('pointerdown',   (e)=>{ if(e.target.closest('button')) return; touchStart = {x:e.clientX, y:e.clientY}; });
+  screenEl.addEventListener('pointercancel', ()=>{ touchStart = null; });
+  screenEl.addEventListener('pointerup', (e)=>{
+    if(!touchStart) return;
+    const dx = e.clientX - touchStart.x;
+    const dy = e.clientY - touchStart.y;
+    touchStart = null;
+    if(Math.max(Math.abs(dx),Math.abs(dy)) < 18){
+      if(state === 'playing' || state === 'paused') togglePause();
+      return;
+    }
+    if(Math.abs(dx) > Math.abs(dy)){
+      setDirection(dx > 0 ? DIRS.right : DIRS.left);
+    } else {
+      setDirection(dy > 0 ? DIRS.down : DIRS.up);
+    }
+  });
+
+  btnStart.addEventListener('click', newGame);
+  btnRestart.addEventListener('click', restartGame);
+  btnFreeRevive.addEventListener('click', freeRevive);
+  btnContinueAd.addEventListener('click', playAdAndContinue);
+  btnRefillLivesAd.addEventListener('click', playAdAndRefillLives);
+  btnResume.addEventListener('click', togglePause);
+  btnPause.addEventListener('click', togglePause);
+
+  window.addEventListener('resize', resizeCanvas);
+
+  setInterval(tickLives, 1000);
+
+  (async function init(){
+    loadLives();
+    resetSnake();
+    food = spawnFood();
+    await loadBest();
+    renderLivesUI();
+    resizeCanvas();
+    initAdMob();
+  })();
+})();
+</script>
+</body>
+</html>
